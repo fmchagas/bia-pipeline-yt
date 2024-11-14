@@ -18,7 +18,7 @@ phases:
     commands:
       - echo Build iniciado em `date`
       - echo Gerando imagem da BIA...
-      - docker build -t $ECR_URI/$IMAGE_REPO_NAME:latest
+      - docker build -t $ECR_URI/$IMAGE_REPO_NAME:latest .
       - docker tag $ECR_URI/$IMAGE_REPO_NAME:latest $ECR_URI/$IMAGE_REPO_NAME:$IMAGE_TAG
   post_build:
     on-failure: ABORT
