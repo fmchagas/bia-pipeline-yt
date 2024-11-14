@@ -1,28 +1,33 @@
 version: 0.2
 
+env:
+  variables:
+    ECR_URI: 637423458437.dkr.ecr.us-east-1.amazonaws.com
+    IMAGE_REPO_NAME: bia
 phases:
   pre_build:
     commands:
-      - echo Fazer login ECR...
-      - aws --version
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 637423458437.dkr.ecr.us-east-1.amazonaws.com
-      - REPOSITORY_URI=637423458437.dkr.ecr.us-east-1.amazonaws.com/bia
+      - echo Fazendo login ECR...
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_URI
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - echo commit hash $COMMIT_HASH - {COMMIT_HASH}
+      - echo COMMIT_HASH=$COMMIT_HASH
       - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - echo IMAGE_TAG=$IMAGE_TAG
   build:
+    on-failure: ABORT
     commands:
       - echo Build iniciado em `date`
       - echo Gerando imagem da BIA...
-      - docker build -t $REPOSITORY_URI:latest .
-      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+      - docker build -t $ECR_URI/$IMAGE_REPO_NAME:latest
+      - docker tag $ECR_URI/$IMAGE_REPO_NAME:latest $ECR_URI/$IMAGE_REPO_NAME:$IMAGE_TAG
   post_build:
+    on-failure: ABORT
     commands:
       - echo Build finalizado com sucesso em `date`
       - echo Enviando a imagem para o ECR...
-      - docker push $REPOSITORY_URI:latest
-      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - docker push $ECR_URI/$IMAGE_REPO_NAME:latest
+      - docker push $ECR_URI/$IMAGE_REPO_NAME:$IMAGE_TAG
       - echo Gerando artefato da imagem para o ECS
-      - printf '[{"name":"bia","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - printf '[{"name":"bia","imageUri":"%s"}]' $ECR_URI/$IMAGE_REPO_NAME:$IMAGE_TAG > imagedefinitions.json
 artifacts:
   files: imagedefinitions.json
